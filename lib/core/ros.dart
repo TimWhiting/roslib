@@ -16,13 +16,7 @@ import 'request.dart';
 
 /// Status enums.
 enum Status { NONE, CONNECTING, CONNECTED, CLOSED, ERRORED }
-enum TopicStatus {
-  SUBSCRIBED,
-  UNSUBSCRIBED,
-  PUBLISHER,
-  ADVERTISED,
-  UNADVERTISED
-}
+enum TopicStatus { SUBSCRIBED, UNSUBSCRIBED, PUBLISHER, ADVERTISED, UNADVERTISED }
 
 /// The class through which all data to and from a ROS node goes through.
 /// Manages status and key information about the connection and node.
@@ -76,14 +70,13 @@ class Ros {
     try {
       // Initialize the connection to the ROS node with a Websocket channel.
       _channel = initializeWebSocketChannel(url);
-      stream =
-          _channel.stream.asBroadcastStream().map((raw) => json.decode(raw));
+      stream = _channel.stream.asBroadcastStream().map((raw) => json.decode(raw));
       // Update the connection status.
       status = Status.CONNECTED;
       _statusController.add(status);
       // Listen for messages on the connection to update the status.
       _channelListener = stream.listen((data) {
-        // print('INCOMING: $data');
+        print('INCOMING: $data');
         if (status != Status.CONNECTED) {
           status = Status.CONNECTED;
           _statusController.add(status);
@@ -121,7 +114,7 @@ class Ros {
     final toSend = (message is Request)
         ? json.encode(message.toJson())
         : (message is Map || message is List) ? json.encode(message) : message;
-    //print('OUTGOING: $toSend');
+    print('OUTGOING: $toSend');
     // Actually send it to the node.
     _channel.sink.add(toSend);
     return true;

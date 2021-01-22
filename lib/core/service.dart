@@ -27,6 +27,9 @@ class Service {
   /// Advertiser that is listened to for service requests when advertising.
   Stream _advertiser;
 
+  /// Subscription for listening to the rosstream
+  StreamSubscription _advertiserSubscription;
+
   /// Checks whether or not the service is currently advertising.
   bool get isAdvertised => _advertiser != null;
 
@@ -69,23 +72,18 @@ class Service {
     ));
     // Listen for requests, forward them to the handler and then
     // send the response back to the ROS node.
-    _advertiser =
-        ros.stream.where((message) => message['service'] == name).asyncMap(
-              (req) => handler(req['args']).then(
-                (resp) {
-                  ros.send(
-                    Request(
-                      op: 'service_response',
-                      id: req['id'],
-                      service: name,
-                      values: resp ?? {},
-                      result: resp != null,
-                    ),
-                  );
-                },
-              ),
-            );
-    _advertiser.listen(null);
+    _advertiser = ros.stream
+        .where((message) => message['service'] == name)
+        .asyncMap((req) => handler(req['args']).then((resp) {
+              ros.send(Request(
+                op: 'service_response',
+                id: req.id,
+                service: name,
+                values: resp ?? {},
+                result: resp != null,
+              ));
+            }));
+    _advertiserSubscription = _advertiser.listen(null);
   }
 
   // Stop advertising the service.
@@ -95,6 +93,7 @@ class Service {
       op: 'unadvertise_service',
       service: name,
     ));
+    _advertiserSubscription?.cancel();
     _advertiser = null;
   }
 }
